@@ -1,7 +1,6 @@
 # MY-PORTFOLIO
 
 
-## Project Links
 
  ## Project Links
 
