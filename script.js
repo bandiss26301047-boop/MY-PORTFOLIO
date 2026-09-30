@@ -7,13 +7,11 @@ const profile = document.getElementById("profile");
 const repoHeading = document.getElementById("repo-heading");
 const repositories = document.getElementById("repositories");
 
-
 // ===============================
 // SEARCH GITHUB USER
 // ===============================
 
 searchForm.addEventListener("submit", async function (event) {
-
   event.preventDefault();
 
   const username = searchInput.value.trim();
@@ -32,47 +30,53 @@ searchForm.addEventListener("submit", async function (event) {
   status.className = "status";
   status.textContent = "Searching GitHub...";
 
-repositories.innerHTML = `
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
-  <div class="skeleton"></div>
-`;
+  repositories.innerHTML = `
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+  `;
 
   try {
+    // 1. Get user profile data from GitHub API
+    const userResponse = await fetch(`https://api.github.com/users/${username}`);
 
-    // Get profile
-    const userResponse = await fetch(
-      `https://api.github.com/users/${username}`
-    );
-
-    // REPLACE IT WITH THIS COMPLETE WORKING VERSION:
     if (!userResponse.ok) {
       if (userResponse.status === 404) {
         throw new Error("USER_NOT_FOUND");
       }
-      throw new Error("FAILED_FETCH");
+      throw new Error("USER_FETCH_ERROR");
     }
 
-    const userData = await userResponse.json();
+    const user = await userResponse.json();
 
-    // Fetch GitHub User Repositories
-    const repoResponse = await fetch(`https://github.com{username}/repos?sort=updated&per_page=6`);
-    const repoData = await repoResponse.json();
+    // 2. Update loading message for repositories
+    status.textContent = "Loading repositories...";
 
-    // Clear loading states
+    // 3. Get user repositories from GitHub API
+    const repoResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=6`);
+
+    if (!repoResponse.ok) {
+      throw new Error("REPO_ERROR");
+    }
+
+    const repos = await repoResponse.json();
+
+    // 4. Clear layout loading animations and messages
     status.textContent = "";
     repositories.innerHTML = "";
 
-    // Render Data
-    renderProfile(userData);
-    renderRepositories(repoData);
+    // 5. Render the User Profile Card
+    renderProfile(user);
+
+    // 6. Render the Repository List
+    renderRepositories(repos);
 
   } catch (error) {
-    repositories.innerHTML = "";
+    console.error(error);
     if (error.message === "USER_NOT_FOUND") {
-      showError(`User "${username}" not found. Try another name.`);
+      showError("GitHub user not found. Please check the username.");
     } else {
-      showError("Something went wrong. Please try again later.");
+      showError("Something went wrong. Please try again.");
     }
   }
 });
@@ -84,15 +88,31 @@ repositories.innerHTML = `
 function renderProfile(user) {
   profile.innerHTML = `
     <div class="profile-card">
-      <img class="profile-image" src="${user.avatar_url}" alt="${user.name || user.login}">
+      <img
+        class="profile-image"
+        src="${user.avatar_url}"
+        alt="${user.login} profile picture"
+      >
       <div class="profile-info">
-        <h2 class="profile-name">${user.name || user.login}</h2>
-        <p class="profile-username">@${user.login}</p>
-        <p class="profile-bio">${user.bio || "This profile has no bio."}</p>
+        <h2 class="profile-name">
+          ${user.name || user.login}
+        </h2>
+        <p class="profile-username">
+          @${user.login}
+        </p>
+        <p class="profile-bio">
+          ${user.bio || "No bio available."}
+        </p>
         <div class="profile-stats">
-          <span class="stat"><strong>${user.public_repos}</strong> Repos</span>
-          <span class="stat"><strong>${user.followers}</strong> Followers</span>
-          <span class="stat"><strong>${user.following}</strong> Following</span>
+          <span class="stat">
+            Repositories: <strong>${user.public_repos}</strong>
+          </span>
+          <span class="stat">
+            Followers: <strong>${user.followers}</strong>
+          </span>
+          <span class="stat">
+            Following: <strong>${user.following}</strong>
+          </span>
         </div>
       </div>
     </div>
@@ -101,219 +121,44 @@ function renderProfile(user) {
 
 function renderRepositories(repos) {
   if (repos.length === 0) {
-    repoHeading.textContent = "No public repositories found.";
+    repoHeading.textContent = "Repositories (0)";
+    repositories.innerHTML = `
+      <p class="status">This user has no public repositories.</p>
+    `;
     return;
   }
 
-  repoHeading.textContent = "Latest Repositories";
+  repoHeading.textContent = `Repositories (${repos.length})`;
 
   repos.forEach(repo => {
-    const card = document.createElement("div");
+    const card = document.createElement("article");
     card.className = "repo-card";
     card.innerHTML = `
       <h3 class="repo-name">
         <a href="${repo.html_url}" target="_blank" rel="noopener">${repo.name}</a>
       </h3>
-      <p class="repo-description">${repo.description || "No description provided."}</p>
+      <p class="repo-description">
+        ${repo.description || "No description provided."}
+      </p>
       <div class="repo-meta">
         <span>⭐ ${repo.stargazers_count}</span>
         <span>🍴 ${repo.forks_count}</span>
-        \${repo.language ? `<span>🔹 \${repo.language}</span>` : ""}
+        <span>🔹 ${repo.language || "Not specified"}</span>
       </div>
     `;
     repositories.appendChild(card);
   });
 }
 
-function showError(message) {
-  status.className = "status error";
-  status.textContent = message;
-}
-
-
-  throw new Error("USER_FETCH_ERROR");
-}
-
-    const user = await userResponse.json();
-
-
-    // ===============================
-    // SHOW PROFILE
-    // ===============================
-
-    profile.innerHTML = `
-      <div class="profile-card">
-
-        <img
-          class="profile-image"
-          src="${user.avatar_url}"
-          alt="${user.login} profile picture"
-        >
-
-        <div class="profile-info">
-
-          <h2 class="profile-name">
-            ${user.name || user.login}
-          </h2>
-
-          <p class="profile-username">
-            @${user.login}
-          </p>
-
-          <p class="profile-bio">
-            ${user.bio || "No bio available."}
-          </p>
-
-          <div class="profile-stats">
-
-            <span class="stat">
-              Repositories:
-              <strong>${user.public_repos}</strong>
-            </span>
-
-            <span class="stat">
-              Followers:
-              <strong>${user.followers}</strong>
-            </span>
-
-            <span class="stat">
-              Following:
-              <strong>${user.following}</strong>
-            </span>
-
-          </div>
-
-        </div>
-
-      </div>
-    `;
-
-
-    // ===============================
-    // GET REPOSITORIES
-    // ===============================
-
-    status.textContent = "Loading repositories...";
-
-    const repoResponse = await fetch(
-      `https://api.github.com/users/${username}/repos?sort=updated&per_page=30`
-    );
-
-    if (!repoResponse.ok) {
-  throw new Error("REPO_ERROR");
-}
-
-    const repos = await repoResponse.json();
-
-
-    // ===============================
-    // SHOW REPOSITORIES
-    // ===============================
-
-    repoHeading.textContent =
-      `Repositories (${repos.length})`;
-
-    if (repos.length === 0) {
-
-      repositories.innerHTML = `
-        <p class="status">
-          This user has no public repositories.
-        </p>
-      `;
-
-    } else {
-
-      repositories.innerHTML = "";
-
-      repos.forEach(function (repo) {
-
-        const card = document.createElement("article");
-
-        card.className = "repo-card";
-
-        card.innerHTML = `
-          
-          <h3 class="repo-name">
-
-            <a
-              href="${repo.html_url}"
-              target="_blank"
-              rel="noopener"
-            >
-              ${repo.name}
-            </a>
-
-          </h3>
-
-
-          <p class="repo-description">
-            ${
-              repo.description ||
-              "No description available."
-            }
-          </p>
-
-
-          <div class="repo-meta">
-
-            <span>
-              ⭐ ${repo.stargazers_count}
-            </span>
-
-            <span>
-              🍴 ${repo.forks_count}
-            </span>
-
-            <span>
-              💻 ${repo.language || "Not specified"}
-            </span>
-
-          </div>
-
-        `;
-
-        repositories.appendChild(card);
-
-      });
-
-    }
-
-
-    // Done
-    status.textContent = "";
-
-  } catch (error) {
-
-    console.error(error);
-
-    } catch (error) {
-
-  console.error(error);
-
-  if (error.message === "USER_NOT_FOUND") {
-    showError("GitHub user not found. Please check the username.");
-  } else {
-    showError("Something went wrong. Please try again.");
-  }
-
-}
-
-  }
-
-});
-
-
 // ===============================
 // ERROR FUNCTION
 // ===============================
 
 function showError(message) {
-
   status.textContent = message;
   status.className = "status error";
 
   profile.innerHTML = "";
   repositories.innerHTML = "";
   repoHeading.textContent = "";
-
 }
