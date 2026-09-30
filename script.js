@@ -32,6 +32,12 @@ searchForm.addEventListener("submit", async function (event) {
   status.className = "status";
   status.textContent = "Searching GitHub...";
 
+repositories.innerHTML = `
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+`;
+
   try {
 
     // Get profile
