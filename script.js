@@ -45,10 +45,91 @@ repositories.innerHTML = `
       `https://api.github.com/users/${username}`
     );
 
+    // REPLACE IT WITH THIS COMPLETE WORKING VERSION:
     if (!userResponse.ok) {
-  if (userResponse.status === 404) {
-    throw new Error("USER_NOT_FOUND");
+      if (userResponse.status === 404) {
+        throw new Error("USER_NOT_FOUND");
+      }
+      throw new Error("FAILED_FETCH");
+    }
+
+    const userData = await userResponse.json();
+
+    // Fetch GitHub User Repositories
+    const repoResponse = await fetch(`https://github.com{username}/repos?sort=updated&per_page=6`);
+    const repoData = await repoResponse.json();
+
+    // Clear loading states
+    status.textContent = "";
+    repositories.innerHTML = "";
+
+    // Render Data
+    renderProfile(userData);
+    renderRepositories(repoData);
+
+  } catch (error) {
+    repositories.innerHTML = "";
+    if (error.message === "USER_NOT_FOUND") {
+      showError(`User "${username}" not found. Try another name.`);
+    } else {
+      showError("Something went wrong. Please try again later.");
+    }
   }
+});
+
+// ===============================
+// HELPER RENDER FUNCTIONS
+// ===============================
+
+function renderProfile(user) {
+  profile.innerHTML = `
+    <div class="profile-card">
+      <img class="profile-image" src="${user.avatar_url}" alt="${user.name || user.login}">
+      <div class="profile-info">
+        <h2 class="profile-name">${user.name || user.login}</h2>
+        <p class="profile-username">@${user.login}</p>
+        <p class="profile-bio">${user.bio || "This profile has no bio."}</p>
+        <div class="profile-stats">
+          <span class="stat"><strong>${user.public_repos}</strong> Repos</span>
+          <span class="stat"><strong>${user.followers}</strong> Followers</span>
+          <span class="stat"><strong>${user.following}</strong> Following</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRepositories(repos) {
+  if (repos.length === 0) {
+    repoHeading.textContent = "No public repositories found.";
+    return;
+  }
+
+  repoHeading.textContent = "Latest Repositories";
+
+  repos.forEach(repo => {
+    const card = document.createElement("div");
+    card.className = "repo-card";
+    card.innerHTML = `
+      <h3 class="repo-name">
+        <a href="${repo.html_url}" target="_blank" rel="noopener">${repo.name}</a>
+      </h3>
+      <p class="repo-description">${repo.description || "No description provided."}</p>
+      <div class="repo-meta">
+        <span>⭐ ${repo.stargazers_count}</span>
+        <span>🍴 ${repo.forks_count}</span>
+        \${repo.language ? `<span>🔹 \${repo.language}</span>` : ""}
+      </div>
+    `;
+    repositories.appendChild(card);
+  });
+}
+
+function showError(message) {
+  status.className = "status error";
+  status.textContent = message;
+}
+
 
   throw new Error("USER_FETCH_ERROR");
 }
