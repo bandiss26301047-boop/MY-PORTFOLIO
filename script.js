@@ -40,8 +40,12 @@ searchForm.addEventListener("submit", async function (event) {
     );
 
     if (!userResponse.ok) {
-      throw new Error("GitHub user not found");
-    }
+  if (userResponse.status === 404) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  throw new Error("USER_FETCH_ERROR");
+}
 
     const user = await userResponse.json();
 
@@ -109,8 +113,8 @@ searchForm.addEventListener("submit", async function (event) {
     );
 
     if (!repoResponse.ok) {
-      throw new Error("Could not load repositories");
-    }
+  throw new Error("REPO_ERROR");
+}
 
     const repos = await repoResponse.json();
 
@@ -195,9 +199,17 @@ searchForm.addEventListener("submit", async function (event) {
 
     console.error(error);
 
-    showError(
-      "GitHub user not found. Please check the username."
-    );
+    } catch (error) {
+
+  console.error(error);
+
+  if (error.message === "USER_NOT_FOUND") {
+    showError("GitHub user not found. Please check the username.");
+  } else {
+    showError("Something went wrong. Please try again.");
+  }
+
+}
 
   }
 
